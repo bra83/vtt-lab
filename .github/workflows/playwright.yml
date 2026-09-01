@@ -33,7 +33,16 @@ jobs:
       - name: Testar VTT em 415x915
         run: npx playwright test
 
-      - name: Publicar relatório em caso de falha
+      - name: Publicar screenshot 415x915
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: vtt-screenshot
+          path: screenshots/
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Publicar relatório Playwright
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v4
         with:
