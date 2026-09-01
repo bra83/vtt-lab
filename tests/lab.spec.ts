@@ -17,5 +17,5 @@ test('WWN piloto abre e funciona em 415x915', async ({ page }) => {
   await page.getByTestId('travel-button').click();
   await expect(page.getByTestId('travel-button')).toContainText('ROTA DEFINIDA');
 
-  await page.screenshot({ path: 'playwright-report/wwn-piloto-415x915.png', fullPage: true });
+  await page.screenshot({ path: 'playwright-report/wwn-piloto-415x915.png' });
 });
