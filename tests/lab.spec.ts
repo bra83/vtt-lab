@@ -11,7 +11,7 @@ test('WWN piloto abre e funciona em 415x915', async ({ page }) => {
   await expect(page.getByTestId('hex-map')).toBeVisible();
   await expect(page.getByText('1 hex = 6 milhas')).toBeVisible();
 
-  await page.getByRole('button', { name: 'Ruínas da Vigília' }).click();
+  await page.locator('button.hex[data-name="Ruínas da Vigília"]').click();
   await expect(page.getByText('RUÍNAS DA VIGÍLIA')).toBeVisible();
 
   await page.getByTestId('travel-button').click();
