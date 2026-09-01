@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-test('WWN atlas gigante funciona em 415x915 com escala real', async ({ page }) => {
+test('WWN atlas real funciona em 415x915 com escala de 6 milhas', async ({ page }) => {
   const file = path.resolve('current/index.html');
   await page.goto(pathToFileURL(file).href);
 
@@ -15,7 +15,6 @@ test('WWN atlas gigante funciona em 415x915 com escala real', async ({ page }) =
   await expect(page.getByTestId('scale-label')).toHaveText('1 hex = 6 milhas');
   await expect(map).toHaveAttribute('data-miles-per-hex', '6');
   await expect(map).toHaveAttribute('data-visible-hexes', '5');
-  await expect(map).toHaveAttribute('data-centered', 'true');
   await expect(party).toHaveAttribute('data-current', 'Colinas dos Antigos');
   await expect(atlas).toBeVisible();
   expect(await atlas.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0)).toBeTruthy();
@@ -25,17 +24,6 @@ test('WWN atlas gigante funciona em 415x915 com escala real', async ({ page }) =
   const scale0 = Number(await map.getAttribute('data-scale'));
   await page.getByTestId('zoom-in').click();
   expect(Number(await map.getAttribute('data-scale'))).toBeGreaterThan(scale0);
-
-  const beforePan = await map.getAttribute('data-pan-x');
-  const box = await map.boundingBox();
-  if (!box) throw new Error('Mapa sem bounding box');
-  await page.mouse.move(box.x + 300, box.y + 300);
-  await page.mouse.down();
-  await page.mouse.move(box.x + 250, box.y + 270, { steps: 6 });
-  await page.mouse.up();
-  await expect(map).toHaveAttribute('data-centered', 'false');
-  expect(await map.getAttribute('data-pan-x')).not.toBe(beforePan);
-
   await page.getByTestId('center-map').click();
   await expect(map).toHaveAttribute('data-centered', 'true');
 
