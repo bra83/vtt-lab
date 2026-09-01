@@ -10,12 +10,12 @@ test('WWN piloto abre e funciona em 415x915', async ({ page }) => {
   expect(await page.viewportSize()).toEqual({ width: 415, height: 915 });
   await expect(page.getByTestId('hex-map')).toBeVisible();
   await expect(page.getByText('1 hex = 6 milhas')).toBeVisible();
-  await expect(page.getByText('COLINAS DAS BRUMAS')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'COLINAS DAS BRUMAS' })).toBeVisible();
 
   await page.screenshot({ path: 'screenshots/wwn-piloto-inicial-415x915.png' });
 
   await page.getByRole('button', { name: 'Ruínas da Vigília' }).click();
-  await expect(page.getByText('RUÍNAS DA VIGÍLIA')).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'RUÍNAS DA VIGÍLIA' })).toBeVisible();
 
   await page.getByTestId('travel-button').click();
   await expect(page.getByTestId('travel-button')).toContainText('ROTA DEFINIDA');
