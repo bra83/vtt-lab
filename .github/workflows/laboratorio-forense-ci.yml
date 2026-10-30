@@ -5,6 +5,11 @@ on:
     paths:
       - 'laboratorio-forense/**'
       - '.github/workflows/laboratorio-forense-ci.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'laboratorio-forense/**'
+      - '.github/workflows/laboratorio-forense-ci.yml'
   workflow_dispatch:
 jobs:
   test:
