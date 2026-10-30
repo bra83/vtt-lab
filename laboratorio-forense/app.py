@@ -11,6 +11,7 @@ from pypdf import PdfReader
 from docx import Document
 from engine import analyze, compare, fragments, times, summary
 from fontes import catalogo, obter_texto, hash_documento
+from casos_criminais import CASOS, obter_interrogatorio
 
 st.set_page_config(page_title="Laboratório Forense", page_icon="🔎",layout="wide")
 st.markdown("""
@@ -62,7 +63,63 @@ def as_csv(rows, fields=None):
 
 st.title("🔎 Laboratório Forense")
 st.caption("Análise documental · português brasileiro · corpus público rastreável")
-tabs=st.tabs(["Biblioteca de transcrições", "Análise comparativa", "Ferramentas e metodologia"])
+tabs=st.tabs(["Investigação cega", "Biblioteca de transcrições", "Análise comparativa", "Ferramentas e metodologia"])
+
+with tabs[0]:
+    st.subheader("Treinamento investigativo — caso real")
+    st.caption("Leia primeiro o contexto. O nome do acusado, o número do processo e as decisões judiciais ficam ocultos durante a análise.")
+    escolhida=st.selectbox("Exercício", CASOS,
+        format_func=lambda c:c.id + " — caso criminal",key="caso_criminal_selecionado")
+    st.markdown("#### Contexto do caso")
+    st.write(escolhida.contexto)
+    st.markdown("#### Sua missão")
+    for n, pergunta in enumerate(escolhida.perguntas,1):
+        st.write(f"{n}. {pergunta}")
+    st.caption(escolhida.aviso)
+    if st.button("Abrir interrogatório real",type="primary",key="abrir_criminal"):
+        try:
+            with st.spinner("Recuperando termo oficial do tribunal..."):
+                documento=obter_interrogatorio(escolhida)
+            st.session_state["criminal_text_"+escolhida.id]=documento
+            st.success("Documento recuperado e anonimizado para o exercício.")
+        except Exception as exc:
+            st.error(f"Não foi possível carregar o interrogatório: {exc}")
+    relato=st.session_state.get("criminal_text_"+escolhida.id)
+    if relato:
+        st.text_area("Interrogatório judicial (anonimizado; redação oficial)",
+            value=relato,height=440,key="criminal_view_"+escolhida.id)
+        col1,col2=st.columns(2)
+        with col1:
+            if st.button("Analisar este depoimento",key="enviar_analise"):
+                put_document("A",relato,{"titulo":escolhida.id+" — interrogatório judicial anonimizado","url":None})
+                st.success("Documento enviado para a aba Análise comparativa. Abra essa aba para executar a análise.")
+        with col2:
+            st.download_button("Baixar texto do exercício",relato.encode("utf-8"),
+                file_name=escolhida.id+"_interrogatorio.txt",mime="text/plain",key="download_criminal")
+        st.markdown("#### Seu parecer preliminar")
+        with st.form(key="parecer_"+escolhida.id):
+            resposta=st.text_area("Registre seu raciocínio, trechos e verificações necessárias",
+                height=190,placeholder="Fatos conhecidos / afirmações do investigado / cronologia / pontos a verificar / explicações alternativas")
+            submitted=st.form_submit_button("Registrar parecer e liberar conferência")
+        if submitted:
+            if len(resposta.strip())<70:
+                st.warning("Registre uma análise mais completa, com ao menos 70 caracteres.")
+            else:
+                st.session_state["parecer_salvo_"+escolhida.id]=resposta
+                st.success("Parecer registrado. A procedência pode ser consultada abaixo.")
+        if st.session_state.get("parecer_salvo_"+escolhida.id):
+            payload={"caso":escolhida.id,"parecer":st.session_state["parecer_salvo_"+escolhida.id],
+                     "questoes":list(escolhida.perguntas)}
+            st.download_button("Exportar meu parecer (JSON)",
+                json.dumps(payload,ensure_ascii=False,indent=2).encode("utf-8"),
+                file_name=escolhida.id+"_parecer.json",mime="application/json")
+            with st.expander("Revelar a fonte original e conferir o processo",expanded=False):
+                st.markdown(f"[Abrir o processo no tribunal]({escolhida.fonte})")
+                st.caption("A consulta à movimentação do processo pode revelar a identidade dos envolvidos e o desfecho. "
+                           "Compare primeiro suas hipóteses com as declarações e provas constantes da fonte primária. "
+                           "O parecer não recebe uma nota de culpabilidade automática.")
+
+with tabs[1]:
 
 with tabs[0]:
     st.subheader("Transcrições integrais em português")
@@ -95,7 +152,7 @@ with tabs[0]:
             st.download_button("Baixar transcrição TXT",preview.encode("utf-8"),
                                file_name="transcricao_senado.txt",mime="text/plain")
 
-with tabs[1]:
+with tabs[2]:
     st.subheader("Corpus de trabalho")
     a_col,b_col=st.columns(2)
     with a_col:
@@ -153,7 +210,7 @@ with tabs[1]:
                 json.dumps(result,ensure_ascii=False,indent=2).encode("utf-8"),
                 "relatorio_forense.json","application/json")
 
-with tabs[2]:
+with tabs[3]:
     st.subheader("Bibliotecas Python — diagnóstico de ambiente")
     deps={"spaCy":"spacy","NLTK":"nltk","scikit-learn":"sklearn",
           "Sentence Transformers":"sentence_transformers","RapidFuzz":"rapidfuzz",
