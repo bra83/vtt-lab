@@ -157,3 +157,24 @@ def obter_interrogatorio(caso: Caso,timeout=35) -> str:
     if len(texto)<850:
         raise ValueError("Interrogatório extraído é insuficiente")
     return texto
+
+
+def somente_respostas(interrogatorio: str) -> str:
+    """Retorna somente respostas atribuídas ao interrogado, mantendo a ordem.
+
+    Perguntas judiciais não entram na extração de marcadores linguísticos.
+    Os códigos numéricos indicam a posição da resposta no termo integral.
+    """
+    blocos = re.findall(
+        r"\bRESPONDEU\s*:\s*(.*?)(?=\s*PERGUNTADO\s*:|\Z)",
+        interrogatorio,
+        flags=re.I | re.S,
+    )
+    falas=[]
+    for indice, bloco in enumerate(blocos, start=1):
+        fala=limpar(bloco)
+        if fala:
+            falas.append(f"Resposta {indice:02d}. {fala}")
+    if not falas:
+        raise ValueError("Nenhuma resposta do interrogado identificada no documento.")
+    return "\n\n".join(falas)
