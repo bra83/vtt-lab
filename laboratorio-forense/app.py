@@ -11,7 +11,7 @@ from pypdf import PdfReader
 from docx import Document
 from engine import analyze, compare, fragments, times, summary
 from fontes import catalogo, obter_texto, hash_documento
-from casos_criminais import CASOS, obter_interrogatorio
+from casos_criminais import CASOS, obter_interrogatorio, somente_respostas
 
 st.set_page_config(page_title="Laboratório Forense", page_icon="🔎",layout="wide")
 st.markdown("""
@@ -63,94 +63,125 @@ def as_csv(rows, fields=None):
 
 st.title("🔎 Laboratório Forense")
 st.caption("Análise documental · português brasileiro · corpus público rastreável")
-tabs=st.tabs(["Investigação cega", "Biblioteca de transcrições", "Análise comparativa", "Ferramentas e metodologia"])
+tabs=st.tabs(["Biblioteca de transcrições", "Análise comparativa", "Ferramentas e metodologia"])
+
+@st.cache_data(ttl=3600,show_spinner=False)
+def carregar_caso(id_caso):
+    caso=next(c for c in CASOS if c.id==id_caso)
+    return obter_interrogatorio(caso)
 
 with tabs[0]:
-    st.subheader("Treinamento investigativo — caso real")
-    st.caption("Leia primeiro o contexto. O nome do acusado, o número do processo e as decisões judiciais ficam ocultos durante a análise.")
-    escolhida=st.selectbox("Exercício", CASOS,
-        format_func=lambda c:c.id + " — caso criminal",key="caso_criminal_selecionado")
-    st.markdown("#### Contexto do caso")
-    st.write(escolhida.contexto)
-    st.markdown("#### Sua missão")
-    for n, pergunta in enumerate(escolhida.perguntas,1):
-        st.write(f"{n}. {pergunta}")
-    st.caption(escolhida.aviso)
-    if st.button("Abrir interrogatório real",type="primary",key="abrir_criminal"):
-        try:
-            with st.spinner("Recuperando termo oficial do tribunal..."):
-                documento=obter_interrogatorio(escolhida)
-            st.session_state["criminal_text_"+escolhida.id]=documento
-            st.success("Documento recuperado e anonimizado para o exercício.")
-        except Exception as exc:
-            st.error(f"Não foi possível carregar o interrogatório: {exc}")
-    relato=st.session_state.get("criminal_text_"+escolhida.id)
-    if relato:
-        st.text_area("Interrogatório judicial (anonimizado; redação oficial)",
-            value=relato,height=440,key="criminal_view_"+escolhida.id)
-        col1,col2=st.columns(2)
-        with col1:
-            if st.button("Analisar este depoimento",key="enviar_analise"):
-                put_document("A",relato,{"titulo":escolhida.id+" — interrogatório judicial anonimizado","url":None})
-                st.success("Documento enviado para a aba Análise comparativa. Abra essa aba para executar a análise.")
-        with col2:
-            st.download_button("Baixar texto do exercício",relato.encode("utf-8"),
-                file_name=escolhida.id+"_interrogatorio.txt",mime="text/plain",key="download_criminal")
-        st.markdown("#### Seu parecer preliminar")
-        with st.form(key="parecer_"+escolhida.id):
-            resposta=st.text_area("Registre seu raciocínio, trechos e verificações necessárias",
-                height=190,placeholder="Fatos conhecidos / afirmações do investigado / cronologia / pontos a verificar / explicações alternativas")
-            submitted=st.form_submit_button("Registrar parecer e liberar conferência")
-        if submitted:
-            if len(resposta.strip())<70:
-                st.warning("Registre uma análise mais completa, com ao menos 70 caracteres.")
-            else:
-                st.session_state["parecer_salvo_"+escolhida.id]=resposta
-                st.success("Parecer registrado. A procedência pode ser consultada abaixo.")
-        if st.session_state.get("parecer_salvo_"+escolhida.id):
-            payload={"caso":escolhida.id,"parecer":st.session_state["parecer_salvo_"+escolhida.id],
-                     "questoes":list(escolhida.perguntas)}
-            st.download_button("Exportar meu parecer (JSON)",
-                json.dumps(payload,ensure_ascii=False,indent=2).encode("utf-8"),
-                file_name=escolhida.id+"_parecer.json",mime="application/json")
-            with st.expander("Revelar a fonte original e conferir o processo",expanded=False):
-                st.markdown(f"[Abrir o processo no tribunal]({escolhida.fonte})")
-                st.caption("A consulta à movimentação do processo pode revelar a identidade dos envolvidos e o desfecho. "
-                           "Compare primeiro suas hipóteses com as declarações e provas constantes da fonte primária. "
-                           "O parecer não recebe uma nota de culpabilidade automática.")
+    st.subheader("Biblioteca de transcrições em português")
+    st.write("Escolha um documento, consulte o contexto e envie o conteúdo diretamente ao motor de análise.")
+    acervo=st.radio("Acervo",["Depoimentos criminais — investigação cega",
+                              "Audiências públicas — Senado Federal"],
+                    horizontal=True,key="acervo_biblioteca")
+    if acervo.startswith("Depoimentos"):
+        caso=st.selectbox("Selecione um caso criminal real", CASOS,
+            format_func=lambda c:c.titulo,key="caso_criminal_selecionado")
+        st.markdown("#### Contexto do crime")
+        st.write(caso.contexto)
+        with st.expander("Roteiro para a investigação",expanded=False):
+            for numero,pergunta in enumerate(caso.perguntas,1):
+                st.write(f"{numero}. {pergunta}")
+        st.caption("Documento judicial em discurso indireto. Nomes e lugares são substituídos por pseudônimos para preservar o exercício.")
+        if st.button("Carregar depoimento do suspeito",type="primary",key="abrir_criminal"):
+            try:
+                with st.spinner("Consultando o interrogatório no tribunal..."):
+                    documento=carregar_caso(caso.id)
+                    somente= somente_respostas(documento)
+                st.session_state["criminal_text_"+caso.id]=documento
+                st.session_state["criminal_answers_"+caso.id]=somente
+                st.success("Interrogatório recuperado e separado das perguntas judiciais.")
+            except Exception as exc:
+                st.error(f"Não foi possível carregar o interrogatório: {exc}")
+        documento=st.session_state.get("criminal_text_"+caso.id)
+        somente=st.session_state.get("criminal_answers_"+caso.id)
+        if documento and somente:
+            st.markdown("#### Interrogatório do acusado")
+            st.text_area("Termo judicial integral (com perguntas)",value=documento,
+                height=320,key="criminal_view_"+caso.id)
+            with st.expander("Visualizar apenas as respostas analisáveis"):
+                st.text_area("Respostas do investigado",value=somente,
+                    height=260,key="criminal_answers_view_"+caso.id)
+            achados=analyze(somente,caso.id)
+            cronologia=times(somente,caso.id)
+            p1,p2,p3=st.columns(3)
+            p1.metric("Palavras nas respostas",len(somente.split()))
+            p2.metric("Trechos marcados",len(achados))
+            p3.metric("Referências de horário",len(cronologia))
+            if achados:
+                with st.expander("Resultados preliminares desta transcrição",expanded=True):
+                    st.dataframe(pd.DataFrame(achados),use_container_width=True,
+                                 hide_index=True,height=270)
+            b1,b2=st.columns(2)
+            if b1.button("Analisar como documento A",type="primary",
+                         use_container_width=True,key="carregar_crime_a"):
+                put_document("A",somente,{
+                    "titulo":caso.id+" — respostas do investigado",
+                    "tipo":"interrogatorio_judicial_anonimizado","id_caso":caso.id,
+                    "documento":"respostas apenas, preservada a ordem"})
+                st.session_state["pending_analysis"]=True
+                st.success("Análise gerada. Abra a aba Análise comparativa.")
+            if b2.button("Comparar como documento B",use_container_width=True,
+                         key="carregar_crime_b"):
+                put_document("B",somente,{
+                    "titulo":caso.id+" — respostas do investigado",
+                    "tipo":"interrogatorio_judicial_anonimizado","id_caso":caso.id,
+                    "documento":"respostas apenas, preservada a ordem"})
+                st.session_state["pending_analysis"]=True
+                st.success("Documento adicionado à comparação. Abra a aba Análise comparativa.")
+            st.download_button("Exportar respostas em TXT",
+                somente.encode("utf-8"),file_name=caso.id+"_respostas.txt",
+                mime="text/plain",key="download_criminal")
+            st.markdown("#### Seu parecer investigativo")
+            with st.form(key="parecer_"+caso.id):
+                parecer=st.text_area("Registre fatos, hipóteses, trechos e verificações necessárias",
+                    height=160,
+                    placeholder="Cronologia / informações verificáveis / hipóteses alternativas / provas independentes")
+                enviado=st.form_submit_button("Registrar parecer e liberar a fonte")
+            if enviado:
+                if len(parecer.strip())<70:
+                    st.warning("Registre um parecer com pelo menos 70 caracteres.")
+                else:
+                    st.session_state["parecer_salvo_"+caso.id]=parecer
+                    st.success("Parecer registrado.")
+            if st.session_state.get("parecer_salvo_"+caso.id):
+                payload={"caso":caso.id,"contexto":caso.contexto,
+                         "parecer":st.session_state["parecer_salvo_"+caso.id]}
+                st.download_button("Exportar parecer (JSON)",
+                    json.dumps(payload,ensure_ascii=False,indent=2).encode("utf-8"),
+                    file_name=caso.id+"_parecer.json",mime="application/json")
+                with st.expander("Revelar a fonte original e conferir o processo"):
+                    st.markdown(f"[Consultar o processo no tribunal]({caso.fonte})")
+                    st.caption("O processo original pode revelar identidade e decisões judiciais.")
+    else:
+        st.write("Notas taquigráficas oficiais de sessões públicas. As falas podem incluir vários participantes.")
+        fontes=catalogo()
+        selecionada=st.selectbox("Transcrição oficial",fontes,
+            format_func=lambda item:item["titulo"],key="selected_source")
+        st.caption(f'Origem: {selecionada["proveniencia"]} · {selecionada["idioma"]}')
+        st.markdown(f'[Consultar o original no Senado]({selecionada["url"]})')
+        l1,l2=st.columns(2)
+        para_a=l1.button("Carregar como documento A",type="primary",use_container_width=True,
+                         key="senado_a")
+        para_b=l2.button("Carregar como documento B",use_container_width=True,
+                         key="senado_b")
+        if para_a or para_b:
+            try:
+                with st.spinner("Recuperando notas taquigráficas..."):
+                    texto=load_source(selecionada)
+                put_document("A" if para_a else "B",texto,selecionada)
+                st.session_state["pending_analysis"]=True
+                st.session_state["last_loaded"]=selecionada["titulo"]
+                st.success("Texto carregado. Abra Análise comparativa para consultar os resultados.")
+            except Exception as exc:
+                st.error(f"Falha ao recuperar a transcrição oficial: {exc}")
+        ultima=st.session_state.get("last_loaded")
+        if ultima:
+            st.caption(f"Última transcrição parlamentar carregada: {ultima}")
 
 with tabs[1]:
-    st.subheader("Transcrições integrais em português")
-    st.write("Fonte primária: notas taquigráficas de sessões públicas do Senado Federal. O carregamento recupera os textos diretamente do portal oficial.")
-    sources=catalogo()
-    selected=st.selectbox("Documento oficial",sources,
-        format_func=lambda item:item["titulo"],key="selected_source")
-    st.caption(f'Fonte: {selected["proveniencia"]} · {selected["idioma"]} · {selected["tipo"]}')
-    st.markdown(f'[Abrir documento na fonte oficial]({selected["url"]})')
-    c1,c2,c3=st.columns([1,1,2])
-    with c1: load_a=st.button("Carregar como A",type="primary",use_container_width=True)
-    with c2: load_b=st.button("Carregar como B",use_container_width=True)
-    if load_a or load_b:
-        try:
-            with st.spinner("Lendo texto na fonte oficial..."):
-                fulltext=load_source(selected)
-            put_document("A" if load_a else "B",fulltext,selected)
-            st.session_state["last_loaded"]=selected["titulo"]
-            st.success(f'Transcrição carregada: {len(fulltext):,} caracteres.')
-        except Exception as exc:
-            st.error(f'Falha ao recuperar transcrição: {exc}')
-            st.info("Use o link oficial para consultar o texto no portal do Senado.")
-    active=st.session_state.get("last_loaded")
-    if active:
-        st.caption(f"Última fonte carregada: {active}")
-    preview=st.session_state.get("text_A") or st.session_state.get("text_B")
-    if preview:
-        with st.expander("Prévia do documento carregado",expanded=False):
-            st.text(preview[:4500]+("\n[…]" if len(preview)>4500 else ""))
-            st.download_button("Baixar transcrição TXT",preview.encode("utf-8"),
-                               file_name="transcricao_senado.txt",mime="text/plain")
-
-with tabs[2]:
     st.subheader("Corpus de trabalho")
     a_col,b_col=st.columns(2)
     with a_col:
@@ -164,7 +195,7 @@ with tabs[2]:
     max_frag=st.slider("Quantidade máxima de trechos por documento",40,280,160,20,
         help="Para documentos extensos, compare os trechos iniciais ou importe seções específicas.")
     level=st.slider("Similaridade lexical mínima",0.10,0.85,0.24,0.01)
-    if st.button("Executar análise",type="primary",use_container_width=True):
+    if st.button("Executar análise",type="primary",use_container_width=True) or st.session_state.pop("pending_analysis",False):
         a=st.session_state.get("text_A","").strip()
         b=st.session_state.get("text_B","").strip()
         if not (a or b):
@@ -208,7 +239,7 @@ with tabs[2]:
                 json.dumps(result,ensure_ascii=False,indent=2).encode("utf-8"),
                 "relatorio_forense.json","application/json")
 
-with tabs[3]:
+with tabs[2]:
     st.subheader("Bibliotecas Python — diagnóstico de ambiente")
     deps={"spaCy":"spacy","NLTK":"nltk","scikit-learn":"sklearn",
           "Sentence Transformers":"sentence_transformers","RapidFuzz":"rapidfuzz",
