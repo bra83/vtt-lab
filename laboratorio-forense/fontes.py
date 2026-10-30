@@ -9,14 +9,14 @@ def catalogo():
 
 def obter_texto(item, timeout=25):
     url = item["url"]
-    if not url.startswith("https://www.govinfo.gov/"):
+    if not url.startswith("https://www25.senado.leg.br/web/atividade/notas-taquigraficas/"):
         raise ValueError("Origem não autorizada")
     response = requests.get(url, timeout=timeout, headers={"User-Agent":"LaboratorioForenseResearch/0.2"})
     response.raise_for_status()
     soup = BeautifulSoup(response.text, "html.parser")
     for tag in soup(["script","style","nav","footer"]):
         tag.decompose()
-    texto = soup.get_text("\n",strip=True)
+    texto = (soup.select_one("main") or soup).get_text("\n",strip=True)
     if len(texto) < 1000:
         raise ValueError("Transcrição insuficiente; verifique a fonte")
     return texto
