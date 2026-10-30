@@ -7,6 +7,7 @@ from pypdf import PdfReader
 from docx import Document
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
+from fontes import catalogo, obter_texto
 
 st.set_page_config(page_title="Laboratório Forense", page_icon="🔎", layout="wide")
 st.title("Laboratório Forense")
@@ -53,10 +54,23 @@ def comparisons(a,b):
         if score>=0.15:
             pairs.append({"Trecho A":aa[i],"Trecho B":bb[j],"Similaridade":round(score,3)})
     return sorted(pairs,key=lambda x:-x["Similaridade"])
+st.subheader("Biblioteca documental — fontes reais")
+fontes = catalogo()
+escolha = st.selectbox("Transcrição oficial", ["Selecione uma fonte"] + [f["titulo"] for f in fontes])
+if escolha != "Selecione uma fonte":
+    fonte = next(f for f in fontes if f["titulo"] == escolha)
+    st.markdown(f'[Consultar original]({fonte["url"]})')
+    st.caption(f'Proveniência: {fonte["proveniencia"]} · Idioma: {fonte["idioma"]}')
+    if st.button("Carregar transcrição oficial"):
+        try:
+            st.session_state["transcricao_real"] = obter_texto(fonte)
+            st.success("Transcrição carregada para análise.")
+        except Exception as exc:
+            st.error(f"Falha ao consultar fonte oficial: {exc}")
 left,right=st.columns(2)
 with left:
     fa=st.file_uploader("Depoimento A",type=["txt","pdf","docx"],key="a")
-    ta=st.text_area("Texto A",value=read_file(fa),height=240)
+    ta=st.text_area("Texto A",value=read_file(fa) or st.session_state.get("transcricao_real",""),height=240)
 with right:
     fb=st.file_uploader("Depoimento B",type=["txt","pdf","docx"],key="b")
     tb=st.text_area("Texto B",value=read_file(fb),height=240)
