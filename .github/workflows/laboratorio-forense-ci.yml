@@ -87,7 +87,7 @@ jobs:
           from casos_criminais import CASOS, obter_interrogatorio
           for case in CASOS:
               statement=obter_interrogatorio(case, timeout=40)
-              assert len(statement)>850, (case.id,len(statement))
+              assert 850<len(statement)<15000, (case.id,len(statement))
               assert statement.count("RESPONDEU:")>=5, case.id
               assert "SENTENÇA" not in statement.upper(), case.id
               print("CRIMINAL CASE",case.id,"OK",len(statement),"characters")
