@@ -1,5 +1,6 @@
 """Fluxo de ponta a ponta: biblioteca criminal -> A -> resultado automático."""
 import unittest
+from pathlib import Path
 from streamlit.testing.v1 import AppTest
 from casos_criminais import CASOS, somente_respostas
 
@@ -14,7 +15,7 @@ FIXTURE = (
 
 class IntegratedLibraryTests(unittest.TestCase):
     def test_criminal_library_feeds_analysis_without_second_upload(self):
-        app=AppTest.from_file("app.py",default_timeout=50)
+        app=AppTest.from_file(str(Path(__file__).resolve().parents[1] / "app.py"),default_timeout=50)
         app.session_state["criminal_text_CR-01"]=FIXTURE
         app.session_state["criminal_answers_CR-01"]=somente_respostas(FIXTURE)
         app.run(timeout=50)
