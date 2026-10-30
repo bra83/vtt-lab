@@ -8,12 +8,12 @@ Análise exploratória de declarações e documentos em português brasileiro, c
 - Branch: laboratorio-forense-streamlit-v2
 - Main file path: laboratorio-forense/app.py
 
-### Modo cego: caso criminal real
+### Biblioteca de transcrições — modo cego criminal
 
-1. Abra **Investigação cega** e selecione CR-01 ou CR-02.
-2. Leia o **contexto neutro do crime** e as perguntas para sua análise.
-3. Selecione **Abrir interrogatório real**. O aplicativo recupera o documento do tribunal e pseudonimiza nomes e locais, preservando eventos e horários.
-4. Analise o documento. Opcionalmente, envie-o à aba **Análise comparativa** para extrair marcadores e horários.
+1. Abra **Biblioteca de transcrições** e selecione **Depoimentos criminais — investigação cega**, depois CR-01 ou CR-02.
+2. Leia o **contexto neutro do crime** e as perguntas de apoio.
+3. Clique **Carregar depoimento do suspeito**. O aplicativo recupera o documento do tribunal, pseudonimiza nomes e locais e separa as respostas das perguntas judiciais.
+4. Os resultados preliminares são exibidos na biblioteca. Clique **Analisar como documento A** para enviar as respostas do suspeito ao motor de análise e calcular os indicadores automaticamente; abra a aba **Análise comparativa** para ver o relatório detalhado. Você também pode carregar um segundo depoimento como B para comparação.
 5. Registre seu parecer (fatos, hipóteses, explicações alternativas e verificações). Depois disso, o link do processo oficial fica disponível para conferência.
 
 **Tipo documental:** termo judicial em discurso indireto; não é gravação ou transcrição fonética. O aplicativo não apresenta o histórico do processo como se fosse um depoimento.
@@ -22,7 +22,7 @@ Análise exploratória de declarações e documentos em português brasileiro, c
 
 ## Biblioteca parlamentar
 
-A aba **Biblioteca de transcrições** oferece notas taquigráficas oficiais do Senado em português, carregadas sob demanda.
+Na mesma **Biblioteca de transcrições**, alterne o acervo para **Audiências públicas — Senado Federal**. As notas taquigráficas oficiais podem ser carregadas como A ou B, para análise no mesmo fluxo.
 
 ## Funções de análise
 
