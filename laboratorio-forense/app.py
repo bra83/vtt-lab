@@ -120,8 +120,6 @@ with tabs[0]:
                            "O parecer não recebe uma nota de culpabilidade automática.")
 
 with tabs[1]:
-
-with tabs[0]:
     st.subheader("Transcrições integrais em português")
     st.write("Fonte primária: notas taquigráficas de sessões públicas do Senado Federal. O carregamento recupera os textos diretamente do portal oficial.")
     sources=catalogo()
