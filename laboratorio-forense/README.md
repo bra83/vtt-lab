@@ -1,21 +1,46 @@
 # Laboratório Forense — Streamlit
 
-Protótipo offline para análise exploratória de depoimentos em português. Analisa marcadores linguísticos, frases e similaridade TF-IDF, sem dependência de API externa. Não inclui corpus real validado nem transcrição de áudio nesta versão.
+Análise exploratória de declarações e documentos em português brasileiro, com exercícios cegos baseados em interrogatórios judiciais reais.
 
-## Executar
+## Testar no Streamlit Community Cloud
 
-```bash
-pip install -r requirements.txt
-streamlit run app.py
-```
+- Repositório: bra83/vtt-lab
+- Branch: laboratorio-forense-streamlit-v2
+- Main file path: laboratorio-forense/app.py
 
-Para acessar no celular na mesma rede: `streamlit run app.py --server.address 0.0.0.0` e abrir `http://IP_DO_COMPUTADOR:8501`. Não exponha o servidor à internet sem autenticação e proteção dos dados.
+### Modo cego: caso criminal real
 
-## Recursos
+1. Abra **Investigação cega** e selecione CR-01 ou CR-02.
+2. Leia o **contexto neutro do crime** e as perguntas para sua análise.
+3. Selecione **Abrir interrogatório real**. O aplicativo recupera o documento do tribunal e pseudonimiza nomes e locais, preservando eventos e horários.
+4. Analise o documento. Opcionalmente, envie-o à aba **Análise comparativa** para extrair marcadores e horários.
+5. Registre seu parecer (fatos, hipóteses, explicações alternativas e verificações). Depois disso, o link do processo oficial fica disponível para conferência.
 
-- TXT, PDF com texto e DOCX
-- Dois depoimentos e identificação de frases semelhantes
-- Marcadores de incerteza, autocorreção, negação e tempo
-- Exportação CSV dos trechos sinalizados
+**Tipo documental:** termo judicial em discurso indireto; não é gravação ou transcrição fonética. O aplicativo não apresenta o histórico do processo como se fosse um depoimento.
 
-Os resultados são sinais de revisão documental e não substituem a leitura contextual. PDFs digitalizados precisam de OCR adicional.
+**Fonte primária:** registros públicos do Portal e-SAJ do Tribunal de Justiça de Alagoas. Os exercícios CR não usam texto ficcional.
+
+## Biblioteca parlamentar
+
+A aba **Biblioteca de transcrições** oferece notas taquigráficas oficiais do Senado em português, carregadas sob demanda.
+
+## Funções de análise
+
+- Importar TXT, PDF textual e DOCX.
+- Marcadores de dúvida, reformulação, negação, afirmações enfáticas e tempo.
+- Pareamento textual TF-IDF e diferenças de números, horários e negações.
+- Extração de referências temporais e relatórios CSV e JSON com fontes e hashes.
+- Diagnóstico das bibliotecas Python instaladas.
+
+Os indicadores são destinados a orientar revisão de documentos; uma correlação textual não equivale à confirmação de um fato.
+
+## Executar localmente
+
+    pip install -r requirements.txt
+    streamlit run app.py
+
+O carregamento de fontes públicas requer conexão HTTPS. Documentos próprios são analisados pelo motor local e não enviados a serviços externos de IA.
+
+## Verificação
+
+O CI instala dependências, executa testes unitários, o teste de interface Streamlit, o teste HTTP e a recuperação real dos registros públicos. Também verifica que um documento criminal excessivamente extenso não seja confundido com um único interrogatório.
