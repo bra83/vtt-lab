@@ -80,3 +80,15 @@ jobs:
           assert "O SR." in text or "A SRA." in text
           print("SENADO LIVE SOURCE OK:", source["id"], len(text), "characters")
           PY
+
+      - name: Retrieve real Brazilian criminal interrogations
+        run: |
+          python - <<'PY'
+          from casos_criminais import CASOS, obter_interrogatorio
+          for case in CASOS:
+              statement=obter_interrogatorio(case, timeout=40)
+              assert len(statement)>850, (case.id,len(statement))
+              assert statement.count("RESPONDEU:")>=5, case.id
+              assert "SENTENÇA" not in statement.upper(), case.id
+              print("CRIMINAL CASE",case.id,"OK",len(statement),"characters")
+          PY
