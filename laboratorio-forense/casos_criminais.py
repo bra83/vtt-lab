@@ -70,6 +70,11 @@ CASOS = (
         fonte="https://www2.tjal.jus.br/cpopg/show.do?processo.codigo=0T00000NP0000&processo.foro=33",
         aliases=(
             ("José Soares de Souza", "INTERROGADO"), ("Cristiano Alexandre da Silva", "Pessoa A"),
+            ("Cristiano Wanderley da Silva", "Pessoa A"), ("Zitinho", "Pessoa E"),
+            ("Adolfo Manoel", "Vítima A"), ("Marcos André", "Pessoa F"),
+            ("Maria Luciene", "Pessoa I"), ("Neno", "Pessoa G"), ("Francisco", "Pessoa H"),
+            ("Rua São Pedro", "Rua A"), ("Rua João Cassiano", "Rua B"),
+            ("Rua Erasmo Porangaba", "Rua C"),
             ("Cristiano", "Pessoa A"), ("Adolfo", "Vítima A"), ("Márcio", "Vítima B"),
             ("Marcio", "Vítima B"), ("André", "Pessoa B"), ("Fabiana", "Pessoa C"),
             ("João Gabriel", "Pessoa D"),
@@ -105,6 +110,9 @@ def extrair_interrogatorio(html: str) -> str:
             re.search(r"\bNada mais sendo dito\b",segment,re.I),
             re.search(r"\bmandou o MM\.\s*Juiz encerrar\b",segment,re.I),
             re.search(r"\bNada mais havendo\b",segment,re.I),
+            re.search(r"\bOBS\.?\s*:\s*Art\.?\s*189\b",segment,re.I),
+            re.search(r"\bEm seguida pelo M\.M\.",segment,re.I),
+            re.search(r"\bA seguir o MM\.",segment,re.I),
         ) if i is not None]
         if boundaries:
             segment=segment[:min(x.start() for x in boundaries)]
@@ -115,12 +123,15 @@ def extrair_interrogatorio(html: str) -> str:
             if p is not None:
                 segment=segment[:300+p.start()]
         if len(segment)>=850 and len(re.findall(r"\bRESPONDEU\s*:",segment,re.I))>=5:
-            candidates.append(segment)
+            # Prefer segments that end at an official interrogation delimiter.
+            candidates.append((bool(boundaries),segment))
     if not candidates:
         raise ValueError("O documento judicial não contém interrogatório isolável e verificável.")
     # Prefer fuller records, capped to avoid incidental documents. Same interrogatório
     # may appear multiple times on the process page.
-    result=max(candidates,key=len)
+    result=max(candidates,key=lambda item:(item[0],len(item[1])))[1]
+    if len(result)>=20_000:
+        raise ValueError("Não foi possível isolar com segurança um único interrogatório.")
     result=re.sub(r"(?i)(?<!\w)(PERGUNTADO\s*:)",r"\n\n\1",result)
     result=re.sub(r"(?i)(?<!\w)(RESPONDEU\s*:)",r"\n\1",result)
     result=re.sub(r"\n{3,}","\n\n",result).strip()
