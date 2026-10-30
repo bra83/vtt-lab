@@ -69,3 +69,14 @@ jobs:
           else:
               raise RuntimeError('Streamlit did not become healthy')
           PY
+
+      - name: Retrieve a real official Portuguese transcript
+        run: |
+          python - <<'PY'
+          from fontes import catalogo, obter_texto
+          source=catalogo()[0]
+          text=obter_texto(source, timeout=30)
+          assert len(text)>1000, len(text)
+          assert "O SR." in text or "A SRA." in text
+          print("SENADO LIVE SOURCE OK:", source["id"], len(text), "characters")
+          PY
