@@ -13,7 +13,7 @@ class BlindCasesTests(unittest.TestCase):
 
     def test_extract_only_interrogation(self):
         questions = " ".join(
-            f"PERGUNTADO: {q}? RESPONDEU: Que esteve no local durante a tarde e que explicou o que aconteceu."
+            f"PERGUNTADO: {q}? RESPONDEU: Que esteve no local durante a tarde e que explicou o que aconteceu. Informou detalhes adicionais sobre o trajeto e os horários que recordava."
             for q in ["se é verdadeira a acusação","onde estava na data","se conhece as provas",
                       "se conhece as testemunhas","se conhece o instrumento","outros fatos",
                       "se tem algo mais a alegar"])
